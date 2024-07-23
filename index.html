@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,6 +6,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Erinnerungs-App</title>
+    <link rel="apple-touch-icon" href="https://img.icons8.com/?size=256&id=11904&format=png">
+    <link rel="icon" href="https://img.icons8.com/?size=256&id=11904&format=png">
+    <!-- CSS Platzhalter -->
     <style>
 :root {
     --background: #121212;
@@ -64,7 +66,36 @@ h1, h2 {
     padding: 0;
 }
 
-.new-reminder-btn, .back-btn, #reminderForm button {
+.search-bar {
+    display: flex;
+    margin-bottom: 20px;
+    height: 40px;
+}
+
+.search-bar input {
+    flex-grow: 1;
+    padding: 0 10px;
+    border: none;
+    border-radius: 5px 0 0 5px;
+    background-color: var(--surface);
+    color: var(--on-surface);
+    height: 100%;
+}
+
+.search-bar button {
+    padding: 0 15px;
+    border: none;
+    border-radius: 0 5px 5px 0;
+    background-color: var(--primary);
+    color: var(--on-background);
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.new-reminder-btn, .back-btn, #reminderForm button, #editReminderForm button, #userProfileForm button {
     display: block;
     width: 100%;
     padding: 15px;
@@ -89,11 +120,33 @@ h1, h2 {
     padding: 15px;
     border-radius: 5px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s ease-out;
 }
 
-.reminder-text {
+#reminderList li.deleting {
+    transform: translateX(-100%);
+}
+
+.reminder-checkbox {
+    margin-right: 10px;
+}
+
+.reminder-title {
+    flex-grow: 1;
     font-weight: bold;
     color: var(--secondary);
+}
+
+.reminder-title.completed {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.delete-reminder {
+    margin-left: 10px;
+    cursor: pointer;
 }
 
 .hidden {
@@ -109,6 +162,37 @@ input, textarea {
     background-color: var(--surface);
     color: var(--on-surface);
     box-sizing: border-box;
+}
+
+.reminder-actions .btn-success {
+    background-color: var(--success);
+}
+
+.reminder-actions .btn-danger {
+    background-color: var(--danger);
+}
+
+#reminderDetails {
+    background-color: var(--surface);
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.reminder-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.reminder-actions button {
+    width: 48%;
+    padding: 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    color: var(--on-background);
 }
 
 .side-menu {
@@ -149,6 +233,10 @@ input, textarea {
                 </div>
                 <button class="menu-btn" onclick="toggleSideMenu()">☰</button>
             </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Suche Erinnerungen">
+                <button onclick="searchReminders()">Suchen</button>
+            </div>
             <button class="new-reminder-btn" onclick="showNewReminderForm()">Neue Erinnerung</button>
             <ul id="reminderList"></ul>
         </div>
@@ -157,38 +245,68 @@ input, textarea {
             <button class="back-btn" onclick="showMainView()">Zurück</button>
             <h2>Neue Erinnerung</h2>
             <form id="reminderForm">
-                <input type="text" id="reminderText" placeholder="Erinnerungstext" required>
+                <input type="text" id="title" placeholder="Titel" required>
                 <textarea id="note" placeholder="Notiz"></textarea>
                 <button type="submit" class="btn-success">Erinnerung hinzufügen</button>
             </form>
         </div>
-
-    <div id="sideMenu" class="side-menu">
-        <div class="side-menu-content">
-            <h2>Persönliche Daten</h2>
-            <form id="userProfileForm">
-                <input type="text" id="userNameInput" placeholder="Name" required>
+        
+        <div id="reminderDetailView" class="hidden">
+            <button class="back-btn" onclick="showMainView()">Zurück</button>
+            <div id="reminderDetails"></div>
+        </div>
+        
+        <div id="editReminderView" class="hidden">
+            <button class="back-btn" onclick="showReminderDetails(currentReminderIndex)">Zurück</button>
+            <h2>Erinnerung bearbeiten</h2>
+            <form id="editReminderForm">
+                <input type="text" id="editTitle" placeholder="Titel" required>
+                <textarea id="editNote" placeholder="Notiz"></textarea>
                 <button type="submit" class="btn-success">Speichern</button>
-                <button type="button" onclick="resetUserProfile()" class="btn-danger">Zurücksetzen</button>
-                <button onclick="exportReminders()">Erinnerungen exportieren</button>
-                <input type="file" id="importFile" style="display:none" onchange="importReminders(event)">
-                <button onclick="document.getElementById('importFile').click()">Erinnerungen importieren</button>
             </form>
+        </div>
+
+        <div id="sideMenu" class="side-menu">
+            <div class="side-menu-content">
+                <h2>Persönliche Daten</h2>
+                <form id="userProfileForm">
+                    <input type="text" id="userNameInput" placeholder="Name" required>
+                    <button type="submit" class="btn-success">Speichern</button>
+                    <button type="button" onclick="resetUserProfile()" class="btn-danger">Zurücksetzen</button>
+                    <button onclick="exportReminders()">Erinnerungen exportieren</button>
+                    <input type="file" id="importFile" style="display:none" onchange="importReminders(event)">
+                    <button onclick="document.getElementById('importFile').click()">Erinnerungen importieren</button>
+                </form>
+            </div>
         </div>
     </div>
 
+    <!-- JavaScript Platzhalter -->
     <script>
 let reminders = [];
+let lastSearchTerm = '';
+let currentReminderIndex = -1;
 let userProfile = {};
 
 const friendlyEmojis = ['😊', '👋', '🌟', '🎉', '👍', '🙌', '🤗', '😃', '😄', '😁'];
 
+function toggleSideMenu() {
+    const sideMenu = document.getElementById('sideMenu');
+    sideMenu.classList.toggle('open');
+    if (sideMenu.classList.contains('open')) {
+        document.getElementById('userNameInput').value = userProfile.name || '';
+    }
+}
+
+function closeSideMenu() {
+    const sideMenu = document.getElementById('sideMenu');
+    sideMenu.classList.remove('open');
+}
+
 function exportReminders() {
     const dataStr = JSON.stringify(reminders);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-
     const exportFileDefaultName = 'reminders.json';
-
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
@@ -198,19 +316,21 @@ function exportReminders() {
 function importReminders(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = function(e) {
         const contents = e.target.result;
         const importedReminders = JSON.parse(contents);
-        reminders = importedReminders;
+        importedReminders.forEach(importedReminder => {
+            if (!reminders.some(reminder => reminder.title === importedReminder.title && reminder.note === importedReminder.note)) {
+                reminders.push(importedReminder);
+            }
+        });
         saveReminders();
-        displayReminders();
+        displayReminders(reminders);
         alert('Erinnerungen wurden erfolgreich importiert.');
     };
     reader.readAsText(file);
 }
-
 
 function saveReminders() {
     localStorage.setItem('reminders', JSON.stringify(reminders));
@@ -220,7 +340,7 @@ function loadReminders() {
     const savedReminders = localStorage.getItem('reminders');
     if (savedReminders) {
         reminders = JSON.parse(savedReminders);
-        displayReminders();
+        displayReminders(reminders);
     }
 }
 
@@ -251,15 +371,73 @@ function setRandomEmoji() {
     }
 }
 
-function displayReminders() {
+function displayReminders(remindersToShow) {
     const reminderList = document.getElementById('reminderList');
     reminderList.innerHTML = '';
-    reminders.forEach((reminder, index) => {
+    remindersToShow.forEach((reminder, index) => {
         const li = document.createElement('li');
-        li.innerHTML = `<span class="reminder-text">${reminder.text}</span>`;
-        li.onclick = () => deleteReminder(index);
+        li.innerHTML = `
+            <input type="checkbox" class="reminder-checkbox" ${reminder.completed ? 'checked' : ''}>
+            <span class="reminder-title ${reminder.completed ? 'completed' : ''}">${reminder.title}</span>
+            <span class="delete-reminder">🗑️</span>
+        `;
+        li.dataset.index = index;
+        
+        const checkbox = li.querySelector('.reminder-checkbox');
+        checkbox.addEventListener('change', () => toggleReminderCompletion(index));
+        
+        li.addEventListener('touchstart', handleTouchStart);
+        li.addEventListener('touchmove', handleTouchMove);
+        li.addEventListener('touchend', handleTouchEnd);
+        
         reminderList.appendChild(li);
     });
+}
+
+function toggleReminderCompletion(index) {
+    reminders[index].completed = !reminders[index].completed;
+    saveReminders();
+    displayReminders(reminders);
+}
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+function handleTouchStart(event) {
+    touchStartX = event.touches[0].clientX;
+}
+
+function handleTouchMove(event) {
+    touchEndX = event.touches[0].clientX;
+}
+
+function handleTouchEnd(event) {
+    if (touchStartX - touchEndX > 150) { // Schwellenwert für Wischgeste
+        const index = parseInt(event.target.closest('li').dataset.index);
+        deleteReminder(index);
+    }
+    touchStartX = 0;
+    touchEndX = 0;
+}
+
+function deleteReminder(index) {
+    const reminderElement = document.querySelectorAll('#reminderList li')[index];
+    reminderElement.classList.add('deleting');
+    setTimeout(() => {
+        reminders.splice(index, 1);
+        saveReminders();
+        displayReminders(reminders);
+    }, 300);
+}
+
+function searchReminders() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    lastSearchTerm = searchTerm;
+    const filteredReminders = reminders.filter(reminder => 
+        reminder.title.toLowerCase().includes(searchTerm) || 
+        reminder.note.toLowerCase().includes(searchTerm)
+    );
+    displayReminders(filteredReminders);
 }
 
 function showNewReminderForm() {
@@ -270,28 +448,36 @@ function showNewReminderForm() {
 function showMainView() {
     document.getElementById('mainView').classList.remove('hidden');
     document.getElementById('newReminderView').classList.add('hidden');
+    document.getElementById('reminderDetailView').classList.add('hidden');
+    document.getElementById('editReminderView').classList.add('hidden');
     closeSideMenu();
+    document.getElementById('searchInput').value = lastSearchTerm;
+    searchReminders();
 }
 
-function deleteReminder(index) {
-    if (confirm('Möchten Sie diese Erinnerung wirklich löschen?')) {
-        reminders.splice(index, 1);
-        saveReminders();
-        displayReminders();
-    }
+function showReminderDetails(index) {
+    currentReminderIndex = index;
+    const reminder = reminders[index];
+    const detailsDiv = document.getElementById('reminderDetails');
+    detailsDiv.innerHTML = `
+        <h2>${reminder.title}</h2>
+        <p>${reminder.note}</p>
+        <div class="reminder-actions">
+            <button onclick="editReminder()" class="btn-success">Bearbeiten</button>
+            <button onclick="deleteReminder(${index})" class="btn-danger">Löschen</button>
+        </div>
+    `;
+    document.getElementById('mainView').classList.add('hidden');
+    document.getElementById('editReminderView').classList.add('hidden');
+    document.getElementById('reminderDetailView').classList.remove('hidden');
 }
 
-function toggleSideMenu() {
-    const sideMenu = document.getElementById('sideMenu');
-    sideMenu.classList.toggle('open');
-    if (sideMenu.classList.contains('open')) {
-        document.getElementById('userNameInput').value = userProfile.name || '';
-    }
-}
-
-function closeSideMenu() {
-    const sideMenu = document.getElementById('sideMenu');
-    sideMenu.classList.remove('open');
+function editReminder() {
+    const reminder = reminders[currentReminderIndex];
+    document.getElementById('editTitle').value = reminder.title;
+    document.getElementById('editNote').value = reminder.note;
+    document.getElementById('reminderDetailView').classList.add('hidden');
+    document.getElementById('editReminderView').classList.remove('hidden');
 }
 
 function resetUserProfile() {
@@ -305,43 +491,54 @@ function resetUserProfile() {
     }
 }
 
-document.getElementById('reminderForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const newReminder = {
-        text: document.getElementById('reminderText').value,
-        note: document.getElementById('note').value
-    };
-    reminders.push(newReminder);
-    saveReminders();
-    this.reset();
-    showMainView();
-    displayReminders();
-});
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('reminderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const newReminder = {
+            title: document.getElementById('title').value,
+            note: document.getElementById('note').value,
+            completed: false
+        };
+        reminders.push(newReminder);
+        saveReminders();
+        this.reset();
+        showMainView();
+    });
 
-document.getElementById('userProfileForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    userProfile = {
-        name: document.getElementById('userNameInput').value
-    };
-    saveUserProfile();
-    closeSideMenu();
-    setRandomEmoji();
-});
+    document.getElementById('editReminderForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        reminders[currentReminderIndex] = {
+            title: document.getElementById('editTitle').value,
+            note: document.getElementById('editNote').value,
+            completed: reminders[currentReminderIndex].completed
+        };
+        saveReminders();
+        showReminderDetails(currentReminderIndex);
+    });
 
-// Initialisierung
-window.addEventListener('load', function() {
+    document.getElementById('userProfileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        userProfile = {
+            name: document.getElementById('userNameInput').value
+        };
+        saveUserProfile();
+        closeSideMenu();
+        setRandomEmoji();
+    });
+
+    document.getElementById('searchInput').addEventListener('input', searchReminders);
+
     loadReminders();
     loadUserProfile();
     setRandomEmoji();
-});
 
-// Event Listener für Klicks außerhalb des Seitenmenüs
-document.addEventListener('click', function(event) {
-    const sideMenu = document.getElementById('sideMenu');
-    const menuBtn = document.querySelector('.menu-btn');
-    if (!sideMenu.contains(event.target) && event.target !== menuBtn) {
-        closeSideMenu();
-    }
+    document.addEventListener('click', function(event) {
+        const sideMenu = document.getElementById('sideMenu');
+        const menuBtn = document.querySelector('.menu-btn');
+        if (!sideMenu.contains(event.target) && event.target !== menuBtn) {
+            closeSideMenu();
+        }
+    });
 });
     </script>
 </body>
