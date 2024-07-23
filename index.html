@@ -6,8 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Erinnerungs-App</title>
-    <link rel="apple-touch-icon" href="https://img.icons8.com/?size=256&id=11904&format=png">
-    <link rel="icon" href="https://img.icons8.com/?size=256&id=11904&format=png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/256/10922/10922548.png">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/256/10922/10922548.png">
     <!-- CSS Platzhalter -->
     <style>
 :root {
@@ -27,6 +27,7 @@ body {
     padding: 0;
     background-color: var(--background);
     color: var(--on-background);
+    overflow-x: hidden;
 }
 
 .container {
@@ -119,10 +120,10 @@ h1, h2 {
     margin-bottom: 10px;
     padding: 15px;
     border-radius: 5px;
-    cursor: pointer;
     display: flex;
     align-items: center;
     transition: transform 0.3s ease-out;
+    touch-action: pan-y;
 }
 
 #reminderList li.deleting {
@@ -130,23 +131,42 @@ h1, h2 {
 }
 
 .reminder-checkbox {
-    margin-right: 10px;
+    margin-right: 15px;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--primary);
+    border-radius: 50%;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+}
+
+.reminder-checkbox:checked {
+    background-color: var(--primary);
+}
+
+.reminder-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    color: var(--on-background);
+    font-size: 14px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 .reminder-title {
     flex-grow: 1;
     font-weight: bold;
     color: var(--secondary);
+    margin-left: 10px;
 }
 
 .reminder-title.completed {
     text-decoration: line-through;
     opacity: 0.7;
-}
-
-.delete-reminder {
-    margin-left: 10px;
-    cursor: pointer;
 }
 
 .hidden {
@@ -379,7 +399,6 @@ function displayReminders(remindersToShow) {
         li.innerHTML = `
             <input type="checkbox" class="reminder-checkbox" ${reminder.completed ? 'checked' : ''}>
             <span class="reminder-title ${reminder.completed ? 'completed' : ''}">${reminder.title}</span>
-            <span class="delete-reminder">🗑️</span>
         `;
         li.dataset.index = index;
         
@@ -409,10 +428,15 @@ function handleTouchStart(event) {
 
 function handleTouchMove(event) {
     touchEndX = event.touches[0].clientX;
+    const diffX = touchStartX - touchEndX;
+    if (Math.abs(diffX) > 5) {
+        event.preventDefault(); // Verhindert das Scrollen der Seite während des Wischens
+    }
 }
 
 function handleTouchEnd(event) {
-    if (touchStartX - touchEndX > 150) { // Schwellenwert für Wischgeste
+    const diffX = touchStartX - touchEndX;
+    if (diffX > 100) { // Schwellenwert für Wischgeste
         const index = parseInt(event.target.closest('li').dataset.index);
         deleteReminder(index);
     }
